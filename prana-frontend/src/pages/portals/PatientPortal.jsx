@@ -22,13 +22,14 @@ export default function PatientPortal() {
       setProfile(userProfile);
 
       const allContracts = await apiGetContracts(token);
-      const myContracts = allContracts.filter(c => c.patient_id === userProfile.id);
+      const myContracts = (allContracts || []).filter(c => c.patient_id === userProfile.id);
       setContracts(myContracts);
 
       const allTrials = await apiGetTrials(token);
-      setTrials(allTrials);
+      setTrials(allTrials || []);
 
-      setEvents(await apiGetAdverseEvents(token));
+      const allEvents = await apiGetAdverseEvents(token);
+      setEvents(allEvents || []);
     } catch (err) { console.error(err); }
   }
 
@@ -117,7 +118,7 @@ export default function PatientPortal() {
         <Card title="Doctor Solutions" value={myEvents.filter(e=>e.doctor_solution).length} icon={ShieldCheck} subtitle="Prescriptions received" />
       </div>
 
-      {/* Patient Active Contracts List with Full Trial Names & Doctor DM Buttons */}
+      {/* Patient Active Contracts List with Universal E-Signature (Text & Image Support) */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
         <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Your Enrolled Clinical Trials & Assigned Doctors</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -127,8 +128,20 @@ export default function PatientPortal() {
                 <span className="text-[10px] font-mono font-bold bg-ayurGreen-200 text-ayurGreen-900 px-2 py-0.5 rounded">{t.ctri_number}</span>
                 <h4 className="font-bold text-sm text-gray-900 dark:text-white mt-1">{t.title}</h4>
                 <p className="text-gray-500 mt-1">Contract Ref: {t.contract_ref}</p>
-                <p className="font-serif italic text-ayurGreen-700 dark:text-ayurGreen-300 mt-1">Consent: "{t.e_signature}"</p>
+                
+                {/* UNIVERSAL E-SIGNATURE VIEWER (Handles both Image & Text) */}
+                <div className="mt-2">
+                  <span className="text-gray-400 block text-[10px]">Verified Consent E-Signature:</span>
+                  {t.e_signature && t.e_signature.startsWith('data:image') ? (
+                    <div className="bg-white p-1.5 rounded border inline-block mt-1">
+                      <img src={t.e_signature} alt="Patient Signature" className="h-10 object-contain" />
+                    </div>
+                  ) : (
+                    <p className="font-serif italic text-ayurGreen-700 dark:text-ayurGreen-300 mt-0.5">"{t.e_signature}"</p>
+                  )}
+                </div>
               </div>
+
               <div className="flex flex-wrap justify-between items-center pt-2 border-t border-ayurGreen-200 dark:border-gray-600 gap-2">
                 <button 
                   onClick={() => navigate(`/doctor/${t.doctor_id}`)} 

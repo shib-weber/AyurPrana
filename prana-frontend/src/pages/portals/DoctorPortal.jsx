@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Card from '../../components/Card';
-import { Users, FilePlus, AlertTriangle, CheckCircle, Search, Activity, LineChart, ArrowRight, Sparkles, Stethoscope } from 'lucide-react';
+import { Users, FilePlus, AlertTriangle, CheckCircle, Search, Activity, LineChart, ArrowRight, Sparkles, Stethoscope, Eraser } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiGetTrials, apiGetPatients, apiGetContracts, apiCreateContract, apiGetAdverseEvents, apiProvideSolution, apiGetPatientHealthLogs, apiGetProfile } from '../../services/api';
 
@@ -12,12 +12,18 @@ export default function DoctorPortal() {
   const [currentDoctor, setCurrentDoctor] = useState(null);
   
   const [selectedPatientId, setSelectedPatientId] = useState('');
-  const [form, setForm] = useState({ trial_id: '', e_signature: '', abdm_id: '' });
+  const [form, setForm] = useState({ trial_id: '', abdm_id: '' });
   const [searchQuery, setSearchQuery] = useState('');
   const [activePatientModal, setActivePatientModal] = useState(null);
   const [patientLogs, setPatientLogs] = useState([]);
   const [solutionInputs, setSolutionInputs] = useState({});
   const [success, setSuccess] = useState('');
+
+  // Canvas Signature Ref & State
+  const canvasRef = useRef(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [signatureData, setSignatureData] = useState('');
+
   const token = localStorage.getItem('prana_token');
   const navigate = useNavigate();
 
@@ -33,6 +39,53 @@ export default function DoctorPortal() {
   }
 
   useEffect(() => { loadData(); }, [token]);
+
+  // Canvas Drawing Handlers for Real E-Signature
+  const startDrawing = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+    
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const draw = (e) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#0f5132'; // AyurGreen ink
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      setSignatureData(canvas.toDataURL('image/png'));
+    }
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setSignatureData('');
+  };
 
   const openPatientProfile = async (patient) => {
     setActivePatientModal(patient);
@@ -57,17 +110,22 @@ export default function DoctorPortal() {
 
   const handleCreateContract = async (e) => {
     e.preventDefault();
+    if (!signatureData) {
+      return alert('Please draw the patient e-signature on the signature pad before establishing the contract.');
+    }
+
     try {
       await apiCreateContract(token, {
         patient_id: parseInt(selectedPatientId),
         trial_id: parseInt(form.trial_id),
-        e_signature: form.e_signature,
+        e_signature: signatureData, // Stores Base64 signature image in DB
         ayushman_bharat_id: form.abdm_id
       });
-      setSuccess('Official contract & e-consent formed successfully!');
+      setSuccess('Official contract & canvas e-consent formed successfully!');
       loadData();
-      setForm({ trial_id: '', e_signature: '', abdm_id: '' });
+      setForm({ trial_id: '', abdm_id: '' });
       setSelectedPatientId('');
+      clearSignature();
     } catch (err) { alert(err.message); }
   };
 
@@ -83,7 +141,7 @@ export default function DoctorPortal() {
 
   const filteredPatients = myAssignedPatients.filter(p => p.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || p.email.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  // Filter safety alarms: only for patients under this doctor AND where no solution has been given yet (so it disappears upon response)
+  // Filter safety alarms: only for patients under this doctor AND where no solution has been given yet
   const myActiveAlarms = events.filter(ev => {
     const isMyPatient = contractedPatientIds.includes(ev.patient_id) || ev.doctor_id === currentDoctor?.id;
     const unresolved = !ev.doctor_solution || ev.doctor_solution.trim() === "";
@@ -124,7 +182,7 @@ export default function DoctorPortal() {
         <Card title="Compliance Score" value="100%" icon={FilePlus} subtitle="ALCOA+ Verified" />
       </div>
 
-            {/* Active Patient Safety Alarms (Disappears Upon Response) */}
+      {/* Active Patient Safety Alarms */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
         <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Pending Patient Safety Alarms (Disappears on Response)</h3>
         <div className="space-y-3">
@@ -149,10 +207,8 @@ export default function DoctorPortal() {
         </div>
       </div>
 
-
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Smart Contract Form */}
+        {/* Smart Contract Form with Canvas E-Signature Pad */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700">
           <h3 className="text-xl font-bold mb-4 text-ayurGreen-800 dark:text-white">Form Official Trial Contract & E-Consent</h3>
           <form onSubmit={handleCreateContract} className="space-y-4">
@@ -173,15 +229,41 @@ export default function DoctorPortal() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium">Patient E-Signature (Consent)</label>
-              <input type="text" value={form.e_signature} onChange={e=>setForm({...form, e_signature: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 font-serif italic" placeholder="e.g. Rahul Patel" required />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">ABDM Health ID</label>
+              <label className="block text-sm font-medium">ABHA Health ID</label>
               <input type="text" value={form.abdm_id} onChange={e=>setForm({...form, abdm_id: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600" placeholder="14-digit ABHA ID" />
             </div>
-            <button type="submit" className="w-full bg-ayurGreen-600 text-white p-3 rounded-xl font-medium">Establish Contract & Store Consent</button>
+
+            {/* REAL CANVAS E-SIGNATURE PAD */}
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-medium">Patient Electronic Signature (Draw Below)</label>
+                <button type="button" onClick={clearSignature} className="text-xs text-red-600 flex items-center space-x-1 hover:underline">
+                  <Eraser className="h-3.5 w-3.5" /><span>Clear Pad</span>
+                </button>
+              </div>
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-white overflow-hidden relative">
+                <canvas
+                  ref={canvasRef}
+                  width={500}
+                  height={150}
+                  className="w-full h-36 cursor-crosshair touch-none"
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                />
+                {!signatureData && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-400 text-xs italic">
+                    Sign here using mouse, stylus, or touch...
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button type="submit" className="w-full bg-ayurGreen-600 text-white p-3 rounded-xl font-medium shadow">Establish Contract & Store Signature</button>
           </form>
         </div>
 
@@ -254,7 +336,8 @@ export default function DoctorPortal() {
           </div>
         </div>
       )}
-            {/* Trials Directory List for Clickable Detailed Report */}
+
+      {/* Active Clinical Trials Directory */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
         <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Active Clinical Trials (Click for Detailed Analytics Report)</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -273,6 +356,5 @@ export default function DoctorPortal() {
         </div>
       </div>
     </div>
-    
   );
 }
