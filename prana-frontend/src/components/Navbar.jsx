@@ -23,6 +23,7 @@ export default function Navbar() {
     if (role === 'patient') return '/patient-portal';
     if (role === 'researcher') return '/researcher-portal';
     if (role === 'gov_official') return '/gov-portal';
+    if (role === 'gov_investigator') return '/investigator-review'; // <-- Maps navbar button correctly
     return '/';
   };
 

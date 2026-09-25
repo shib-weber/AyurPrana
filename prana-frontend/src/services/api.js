@@ -203,3 +203,29 @@ export async function apiSendMessage(token, receiverId, message) {
   if (!res.ok) throw new Error("Failed to send message");
   return res.json();
 }
+
+export async function apiGetDocuments(token) {
+  const res = await fetch(`${API_BASE_URL}/documents/`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error("Failed to fetch documents");
+  return res.json();
+}
+
+export async function apiSubmitDocument(token, docData) {
+  const res = await fetch(`${API_BASE_URL}/documents/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(docData)
+  });
+  if (!res.ok) throw new Error("Failed to submit document");
+  return res.json();
+}
+
+export async function apiReviewDocument(token, docId, status) {
+  const res = await fetch(`${API_BASE_URL}/documents/${docId}/review`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status })
+  });
+  if (!res.ok) throw new Error("Failed to review document");
+  return res.json();
+}

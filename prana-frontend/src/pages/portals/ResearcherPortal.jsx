@@ -1,27 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../../components/Card';
-import { Database, Activity, PlusCircle, FileText, ShieldAlert, BarChart3, Users, Code, ArrowRight, Upload, Sparkles, Microscope } from 'lucide-react';
+import { Database, Activity, FileText, ShieldAlert, BarChart3, Users, Code, ArrowRight, Upload, Sparkles, Microscope, CheckCircle, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiGetTrials, apiCreateTrial, apiGetAdverseEvents, apiGetAuditLogs, apiGetProfile } from '../../services/api';
+import { apiGetTrials, apiGetAdverseEvents, apiGetAuditLogs, apiGetProfile, apiGetDocuments, apiSubmitDocument } from '../../services/api';
 
 export default function ResearcherPortal() {
   const [trials, setTrials] = useState([]);
   const [events, setEvents] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [currentResearcher, setCurrentResearcher] = useState(null);
-  const [newTrial, setNewTrial] = useState({ 
-    ctri_number: '', 
-    title: '', 
-    phase: 'Phase III', 
-    status: 'Recruiting', 
-    target_enrolment: 150, 
-    principal_investigator: '' 
-  });
-  const [researchPaper, setResearchPaper] = useState({ title: '', category: 'Ayurvedic Pharmacognosy', filename: '' });
-  const [uploadedPapers, setUploadedPapers] = useState([
-    { id: 1, title: 'Ashwagandha Extract Standardisation & Cognitive Efficacy Protocol v2.1', category: 'Clinical Trial Protocol', date: '2026-03-12', size: '4.2 MB' },
-    { id: 2, title: 'Panchakarma Basti Pharmacokinetics & Patient Safety Assessment', category: 'Safety Monograph', date: '2026-02-18', size: '2.8 MB' }
-  ]);
+  
+  const [researchPaper, setResearchPaper] = useState({ title: '', category: 'Clinical Trial Protocol', filename: '', fileData: '' });
   const [success, setSuccess] = useState('');
   const token = localStorage.getItem('prana_token');
   const navigate = useNavigate();
@@ -34,8 +24,10 @@ export default function ResearcherPortal() {
       const fetchedTrials = await apiGetTrials(token);
       setTrials(fetchedTrials);
       
+      const docs = await apiGetDocuments(token);
+      setDocuments(docs.filter(d => d.researcher_id === profile.id));
+
       const allEvents = await apiGetAdverseEvents(token);
-      // Filter safety feed: show ONLY events associated with this researcher's trials
       const trialIds = fetchedTrials.map(t => t.id);
       const myEvents = allEvents.filter(ev => trialIds.includes(ev.trial_id));
       setEvents(myEvents);
@@ -46,31 +38,37 @@ export default function ResearcherPortal() {
 
   useEffect(() => { loadData(); }, [token]);
 
-  const handleRegisterTrial = async (e) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setResearchPaper({
+        ...researchPaper,
+        filename: file.name,
+        fileData: reader.result // Base64 Data URL for live inspector preview
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadPaper = async (e) => {
     e.preventDefault();
+    if (!researchPaper.title) return;
     try {
-      const ctri = newTrial.ctri_number || `CRDA/AIIA/2026/${Math.floor(1000 + Math.random() * 9000)}`;
-      await apiCreateTrial(token, { ...newTrial, ctri_number: ctri });
-      setSuccess(`Trial successfully registered with CRDA / CTRI Reference: ${ctri}`);
+      await apiSubmitDocument(token, {
+        title: researchPaper.title,
+        category: researchPaper.category,
+        filename: researchPaper.filename || 'protocol.pdf',
+        file_data: researchPaper.fileData
+      });
+      setSuccess('Research protocol submitted successfully to Ethics Committee. Upon acceptance, your clinical trial and CRDA ID will be automatically generated and activated.');
       loadData();
-      setNewTrial({ ctri_number: '', title: '', phase: 'Phase III', status: 'Recruiting', target_enrolment: 150, principal_investigator: '' });
+      setResearchPaper({ title: '', category: 'Clinical Trial Protocol', filename: '', fileData: '' });
     } catch (err) { alert(err.message); }
   };
 
-  const handleUploadPaper = (e) => {
-    e.preventDefault();
-    if (!researchPaper.title) return;
-    const newDoc = {
-      id: uploadedPapers.length + 1,
-      title: researchPaper.title,
-      category: researchPaper.category,
-      date: new Date().toISOString().split('T')[0],
-      size: '3.4 MB'
-    };
-    setUploadedPapers([newDoc, ...uploadedPapers]);
-    setResearchPaper({ title: '', category: 'Ayurvedic Pharmacognosy', filename: '' });
-    alert('Research protocol / PDF uploaded successfully and published to public repository.');
-  };
+  const acceptedDocsCount = documents.filter(d => d.status === 'Accepted').length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
@@ -98,22 +96,85 @@ export default function ResearcherPortal() {
         </div>
       </div>
 
-      {success && <div className="p-4 bg-green-100 text-green-800 rounded-xl">{success}</div>}
+      {success && <div className="p-4 bg-green-100 text-green-800 rounded-xl text-xs">{success}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card title="My Active Trials (CRDA Tracked)" value={trials.length} icon={Activity} subtitle="Isolated researcher portfolio" />
+        <Card title="Live Active Trials (CRDA Active)" value={trials.length} icon={Activity} subtitle="Automatically provisioned portfolio" />
+        <Card title="IEC Accepted Protocols" value={acceptedDocsCount} icon={CheckCircle} subtitle="Verified study authorizations" />
         <Card title="Anonymized Safety Feed" value={events.length} icon={ShieldAlert} subtitle="NPvCC Signal Monitoring" />
-        <Card title="CDISC SDTM / ADaM" value="Ready" icon={Database} subtitle="Tabulation compliant" />
       </div>
 
-      {/* Graphical Analytics & Clickable Detailed Trial Report Cards */}
+      {/* REARRANGED LAYOUT: Top Row for Upload & Protocol Status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        {/* Upload Research Documents & Protocols for Verification */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 flex flex-col justify-between">
+          <div>
+            <h3 className="text-xl font-bold mb-4 text-ayurGreen-800 dark:text-white flex items-center space-x-2">
+              <Upload className="h-5 w-5 text-ayurGreen-600" />
+              <span>Submit Trial Protocol for IEC Verification</span>
+            </h3>
+            <form onSubmit={handleUploadPaper} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium">Protocol Study Title</label>
+                <input type="text" value={researchPaper.title} onChange={e=>setResearchPaper({...researchPaper, title: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600" required placeholder="e.g. Clinical Monograph on Brahmi Efficacy" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Category</label>
+                <select value={researchPaper.category} onChange={e=>setResearchPaper({...researchPaper, category: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600">
+                  <option value="Clinical Trial Protocol">Clinical Trial Protocol</option>
+                  <option value="Safety Monograph">Safety Monograph</option>
+                  <option value="Ayurvedic Pharmacognosy">Ayurvedic Pharmacognosy</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Select PDF Protocol File</label>
+                <input type="file" accept=".pdf" onChange={handleFileChange} className="w-full mt-1 p-2 border rounded-xl dark:bg-gray-700 dark:border-gray-600 text-sm" required />
+              </div>
+              <button type="submit" className="w-full bg-ayurGreen-600 text-white p-3 rounded-xl font-medium hover:bg-ayurGreen-700 transition">
+                Submit to Ethics Committee
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Protocol Verification & CRDA Assignment Tracking */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
+          <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Protocol Verification Status & CRDA Assignments</h3>
+          <p className="text-xs text-gray-500">Once your uploaded document is accepted by the IEC investigator, your trial is instantly activated with an official CRDA ID.</p>
+          <div className="space-y-3 max-h-72 overflow-y-auto">
+            {documents.length === 0 ? (
+              <p className="text-xs text-gray-500 py-6 text-center">No protocol documents submitted yet.</p>
+            ) : (
+              documents.map(d => (
+                <div key={d.id} className="p-3 bg-ayurGreen-50 dark:bg-gray-700 rounded-xl flex justify-between items-center text-xs border border-ayurGreen-100">
+                  <div className="space-y-1">
+                    <p className="font-bold text-gray-900 dark:text-white">{d.title}</p>
+                    <p className="text-gray-500">{d.category} • Submitted: {new Date(d.submitted_date).toLocaleDateString()}</p>
+                    {d.assigned_crda && <p className="font-mono font-bold text-ayurGreen-700 dark:text-ayurGreen-300">CRDA ID: {d.assigned_crda}</p>}
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${
+                    d.status === 'Accepted' ? 'bg-green-200 text-green-900' :
+                    d.status === 'Rejected' ? 'bg-red-200 text-red-900' : 'bg-amber-200 text-amber-900'
+                  }`}>
+                    {d.status}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Active Trials Portfolio & Analytics */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-6">
         <div className="flex items-center space-x-2">
           <BarChart3 className="h-6 w-6 text-ayurGreen-600"/>
-          <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Trial Enrolment Growth & Risk Analytics (Click for Detailed Report)</h3>
+          <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Active Trials Portfolio & Enrolment Analytics (Click for Detailed Report)</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {trials.length === 0 ? <p className="text-xs text-gray-500 py-4">No trials registered under your researcher account yet.</p> : trials.map(t => {
+          {trials.length === 0 ? <p className="text-xs text-gray-500 py-4">No active trials found. Submit and get your protocol accepted to launch trials automatically.</p> : trials.map(t => {
             const percentage = Math.min(100, Math.round((t.current_enrolment / t.target_enrolment) * 100));
             return (
               <div key={t.id} onClick={() => navigate(`/trials/${t.id}`)} className="p-4 bg-ayurGreen-50 dark:bg-gray-700 rounded-xl cursor-pointer hover:shadow-md transition space-y-3 border border-ayurGreen-100 flex flex-col justify-between">
@@ -140,75 +201,6 @@ export default function ResearcherPortal() {
               </div>
             );
           })}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Register Trial & Generate CRDA */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700">
-          <h3 className="text-xl font-bold mb-4 text-ayurGreen-800 dark:text-white flex items-center space-x-2">
-            <PlusCircle className="h-5 w-5 text-ayurGreen-600" />
-            <span>Register Trial & Generate CRDA ID</span>
-          </h3>
-          <form onSubmit={handleRegisterTrial} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium">CRDA / CTRI Number</label>
-              <input type="text" value={newTrial.ctri_number} onChange={e=>setNewTrial({...newTrial, ctri_number: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600" placeholder="Auto-generated if blank" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Study Title</label>
-              <input type="text" value={newTrial.title} onChange={e=>setNewTrial({...newTrial, title: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600" required placeholder="Ayurvedic compound study" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Principal Investigator</label>
-              <input type="text" value={newTrial.principal_investigator} onChange={e=>setNewTrial({...newTrial, principal_investigator: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600" required placeholder="Dr. Sharma" />
-            </div>
-            <button type="submit" className="w-full bg-ayurGreen-600 text-white p-3 rounded-xl font-medium">Register Trial</button>
-          </form>
-        </div>
-
-        {/* Upload Research Documents & PDFs */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700">
-          <h3 className="text-xl font-bold mb-4 text-ayurGreen-800 dark:text-white flex items-center space-x-2">
-            <Upload className="h-5 w-5 text-ayurGreen-600" />
-            <span>Upload Trial Protocols & Research PDFs</span>
-          </h3>
-          <form onSubmit={handleUploadPaper} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium">Document Title</label>
-              <input type="text" value={researchPaper.title} onChange={e=>setResearchPaper({...researchPaper, title: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600" required placeholder="e.g. Clinical Monograph on Brahmi" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Category</label>
-              <select value={researchPaper.category} onChange={e=>setResearchPaper({...researchPaper, category: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600">
-                <option value="Clinical Trial Protocol">Clinical Trial Protocol</option>
-                <option value="Safety Monograph">Safety Monograph</option>
-                <option value="Ayurvedic Pharmacognosy">Ayurvedic Pharmacognosy</option>
-                <option value="Published Journal Paper">Published Journal Paper</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Select PDF File</label>
-              <input type="file" accept=".pdf" onChange={e=>setResearchPaper({...researchPaper, filename: e.target.files[0]?.name})} className="w-full mt-1 p-2 border rounded-xl dark:bg-gray-700 dark:border-gray-600 text-sm" required />
-            </div>
-            <button type="submit" className="w-full bg-ayurGreen-600 text-white p-3 rounded-xl font-medium">Publish PDF to Repository</button>
-          </form>
-        </div>
-      </div>
-
-      {/* Published Research Repository Table */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
-        <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Published Trial Protocols & Research Repository</h3>
-        <div className="space-y-2 max-h-60 overflow-y-auto">
-          {uploadedPapers.map(p => (
-            <div key={p.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl flex justify-between items-center text-xs">
-              <div>
-                <p className="font-semibold text-gray-900 dark:text-white">{p.title}</p>
-                <p className="text-gray-500">{p.category} • {p.date} • {p.size}</p>
-              </div>
-              <span className="px-2 py-1 bg-ayurGreen-200 text-ayurGreen-900 rounded font-bold">Public PDF</span>
-            </div>
-          ))}
         </div>
       </div>
 

@@ -87,8 +87,22 @@ class AuditLog(Base):
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
+    
     id = Column(Integer, primary_key=True, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"))
-    receiver_id = Column(Integer, ForeignKey("users.id"))
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Must be recipient_id
     message = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class ResearchDocument(Base):
+    __tablename__ = "research_documents"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    researcher_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    filename = Column(String, nullable=False)
+    file_data = Column(Text, nullable=True) # <-- This column is required
+    status = Column(String, default="Pending")
+    assigned_crda = Column(String, nullable=True)
+    submitted_date = Column(DateTime, default=datetime.utcnow)

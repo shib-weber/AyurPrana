@@ -29,6 +29,7 @@ export default function Login() {
       else if (profile.role === 'patient') navigate('/patient-portal');
       else if (profile.role === 'researcher') navigate('/researcher-portal');
       else if (profile.role === 'gov_official') navigate('/gov-portal');
+      else if (profile.role === 'gov_investigator') navigate('/investigator-review'); // <-- Routes Government Investigators here
       else navigate('/');
     } catch (err) {
       setError(err.message || 'Invalid username or password');

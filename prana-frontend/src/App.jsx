@@ -10,6 +10,7 @@ import DoctorPortal from './pages/portals/DoctorPortal';
 import PatientPortal from './pages/portals/PatientPortal';
 import ResearcherPortal from './pages/portals/ResearcherPortal';
 import GovPortal from './pages/portals/GovPortal';
+import InvestigatorReviewPortal from './pages/portals/InvestigatorReviewPortal'; // <-- Newly added Investigator Review Portal
 import TrialDetailPage from './pages/TrialDetailPage';
 import PatientProfilePage from './pages/PatientProfilePage';
 import DoctorProfilePage from './pages/DoctorProfilePage'; 
@@ -64,18 +65,25 @@ export default function App() {
                   <GovPortal />
                 </ProtectedRoute>
               } />
+              
+              {/* Newly Added IEC / Investigator Protocol Review Portal */}
+              <Route path="/investigator-review" element={
+                <ProtectedRoute>
+                  <InvestigatorReviewPortal />
+                </ProtectedRoute>
+              } />
 
-              {/* Protected Individual Patient Profile Route */}
+              {/* Protected Individual Patient & Doctor Profile Routes */}
               <Route path="/patient/:patientId" element={
                 <ProtectedRoute>
                   <PatientProfilePage />
                 </ProtectedRoute>
               } />
               <Route path="/doctor/:doctorId" element={
-  <ProtectedRoute>
-    <DoctorProfilePage />
-  </ProtectedRoute>
-} />
+                <ProtectedRoute>
+                  <DoctorProfilePage />
+                </ProtectedRoute>
+              } />
 
               {/* Catch-all fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

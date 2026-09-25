@@ -138,19 +138,20 @@ export default function Register() {
                   placeholder="email@mail.com" 
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Role Portal</label>
-                <select 
-                  value={formData.role} 
-                  onChange={e => setFormData({...formData, role: e.target.value})} 
-                  className="w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none transition"
-                >
-                  <option value="doctor">Doctor / Investigator</option>
-                  <option value="patient">Patient</option>
-                  <option value="researcher">Researcher / Data Manager</option>
-                  <option value="gov_official">Government Official / Regulator</option>
-                </select>
-              </div>
+<div>
+  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Role Portal</label>
+  <select 
+    value={formData.role} 
+    onChange={e => setFormData({...formData, role: e.target.value})} 
+    className="w-full px-3 py-2 text-sm border rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none transition"
+  >
+    <option value="doctor">Doctor / Investigator</option>
+    <option value="patient">Patient</option>
+    <option value="researcher">Researcher / Data Manager</option>
+    <option value="gov_official">Government Official / Regulator</option>
+    <option value="gov_investigator">Government Investigator / IEC Reviewer</option>
+  </select>
+</div>
             </div>
 
             <div>
