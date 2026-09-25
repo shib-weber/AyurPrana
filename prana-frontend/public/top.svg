@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <!-- Background Circle -->
+  <circle cx="250" cy="250" r="230" fill="#ffffff" stroke="#2c5e3b" stroke-width="6" />
+  <circle cx="250" cy="250" r="215" fill="none" stroke="#2c5e3b" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.6" />
+
+  <!-- Plantlet & Letter P Design Elements -->
+  <g transform="translate(0, 10)">
+    <!-- Main stem forming the vertical back of the letter P -->
+    <path d="M 215 355 C 215 290, 215 220, 215 155" fill="none" stroke="#2d6a4f" stroke-width="14" stroke-linecap="round" />
+    
+    <!-- Organic curved loop forming the bowl of the letter P, merging into leaves -->
+    <path d="M 215 220 C 235 200, 310 195, 315 245 C 320 290, 250 295, 215 295" fill="none" stroke="#2d6a4f" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Left side foliage / branches -->
+    <path d="M 215 260 C 180 250, 160 220, 145 200" fill="none" stroke="#40916c" stroke-width="6" stroke-linecap="round" />
+    <path d="M 215 210 C 185 195, 170 175, 155 150" fill="none" stroke="#40916c" stroke-width="6" stroke-linecap="round" />
+    <path d="M 215 170 C 195 155, 185 135, 175 115" fill="none" stroke="#40916c" stroke-width="5" stroke-linecap="round" />
+
+    <!-- Right side foliage extending from the top and inside the loop -->
+    <path d="M 215 155 C 240 135, 260 115, 280 100" fill="none" stroke="#40916c" stroke-width="6" stroke-linecap="round" />
+    <path d="M 270 235 C 295 220, 320 215, 335 205" fill="none" stroke="#52b788" stroke-width="5" stroke-linecap="round" />
+
+    <!-- Individual Leaves (Detailed organic shapes) -->
+    <!-- Top central sprout bud -->
+    <path d="M 215 155 C 210 140, 215 125, 215 110 C 215 125, 220 140, 215 155 Z" fill="#52b788" />
+    
+    <!-- Top Right Leaf -->
+    <path d="M 280 100 C 295 110, 310 130, 305 150 C 290 140, 280 120, 280 100 Z" fill="#40916c" />
+    <path d="M 280 100 C 290 120, 295 130, 305 150" fill="none" stroke="#74c69d" stroke-width="1.5" />
+
+    <!-- Upper Left Leaf -->
+    <path d="M 155 150 C 165 135, 185 130, 200 135 C 190 145, 175 150, 155 150 Z" fill="#52b788" />
+
+    <!-- Mid Left Leaf -->
+    <path d="M 145 200 C 155 185, 175 180, 195 190 C 180 200, 165 205, 145 200 Z" fill="#40916c" />
+
+    <!-- Lower Left Leaf (Small sprout base) -->
+    <path d="M 175 240 C 185 230, 200 230, 210 240 C 200 250, 185 250, 175 240 Z" fill="#74c69d" />
+
+    <!-- Inner Loop Right Leaf -->
+    <path d="M 315 245 C 330 260, 325 285, 310 295 C 305 280, 300 265, 315 245 Z" fill="#40916c" />
+    <path d="M 315 245 C 305 265, 305 280, 310 295" fill="none" stroke="#74c69d" stroke-width="1.5" />
+
+    <!-- Uppermost Left Sprout Tip -->
+    <path d="M 175 115 C 180 105, 195 100, 205 105 C 195 115, 185 120, 175 115 Z" fill="#74c69d" />
+
+    <!-- Base / Roots / Ground anchor styling for the letter stem -->
+    <path d="M 190 355 C 200 365, 230 365, 240 355" fill="none" stroke="#2d6a4f" stroke-width="6" stroke-linecap="round" />
+    <circle cx="215" cy="357" r="4" fill="#1b4332" />
+  </g>
+</svg>

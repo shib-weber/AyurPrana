@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { Sun, Moon, ShieldCheck, LogOut, User, Menu, X } from 'lucide-react';
+import { Sun, Moon, LogOut, User, Menu, X } from 'lucide-react';
 
 export default function Navbar() {
   const { darkMode, toggleTheme } = useTheme();
@@ -23,7 +23,7 @@ export default function Navbar() {
     if (role === 'patient') return '/patient-portal';
     if (role === 'researcher') return '/researcher-portal';
     if (role === 'gov_official') return '/gov-portal';
-    if (role === 'gov_investigator') return '/investigator-review'; // <-- Maps navbar button correctly
+    if (role === 'gov_investigator') return '/investigator-review';
     return '/';
   };
 
@@ -31,9 +31,13 @@ export default function Navbar() {
     <nav className="bg-white dark:bg-gray-800 border-b border-emerald-100 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* Brand Logo & Title */}
-        <Link to="/" className="flex items-center space-x-2" onClick={() => setMobileMenuOpen(false)}>
-          <ShieldCheck className="h-7 w-7 sm:h-8 sm:w-8 text-emerald-600 dark:text-emerald-400 shrink-0" />
+        {/* Brand Logo & Title (Using public/logo.png) */}
+        <Link to="/" className="flex items-center space-x-2.5" onClick={() => setMobileMenuOpen(false)}>
+          <img 
+            src="/logo.png" 
+            alt="AyurPrana Logo" 
+            className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-lg shrink-0" 
+          />
           <span className="font-bold text-lg sm:text-xl text-emerald-800 dark:text-white tracking-wide">AyurPrana</span>
           <span className="text-[10px] sm:text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 px-2 py-0.5 rounded-full font-medium hidden xs:inline-block">
             AIIA CTMS

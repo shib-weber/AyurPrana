@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4B7C48" />
+      <stop offset="100%" stop-color="#2D5A27" />
+    </linearGradient>
+    <linearGradient id="stemGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#5A8F54" />
+      <stop offset="100%" stop-color="#284E23" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(40, 20)">
+    <!-- Outer Circular Boundary Frame -->
+    <circle cx="210" cy="210" r="190" fill="none" stroke="url(#stemGrad)" stroke-width="4" stroke-dasharray="8 6" opacity="0.35"/>
+    <circle cx="210" cy="210" r="175" fill="none" stroke="url(#leafGrad)" stroke-width="6" opacity="0.85"/>
+
+    <!-- Integrated Letter P Stem & Backbone -->
+    <path d="M 155 350 Q 155 240 155 180 Q 155 110 200 90 Q 245 70 270 110 Q 295 150 265 190 Q 235 230 155 230" 
+          fill="none" stroke="url(#stemGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Inner Letter P Negative Space / Curve Softener -->
+    <path d="M 167 125 Q 230 115 245 150 Q 260 185 200 205 Q 167 212 167 175 Z" 
+          fill="none" stroke="url(#stemGrad)" stroke-width="4" opacity="0.2"/>
+
+    <!-- Ayurvedic Plant Leaves & Sprouts -->
+    <!-- Top Sprout Bud -->
+    <path d="M 200 90 Q 190 60 200 40 Q 210 60 200 90 Z" fill="url(#leafGrad)" />
+    
+    <!-- Left Branching Leaves -->
+    <path d="M 155 270 Q 110 260 90 280 Q 110 300 155 285 Z" fill="url(#leafGrad)" />
+    <path d="M 155 210 Q 105 195 95 220 Q 120 235 155 225 Z" fill="url(#leafGrad)" />
+    <path d="M 155 150 Q 115 130 110 155 Q 135 170 155 160 Z" fill="url(#leafGrad)" />
+
+    <!-- Right Upper Ayurvedic Herbal Leaves (Emerging from P curve) -->
+    <path d="M 260 115 Q 305 95 320 125 Q 295 145 260 130 Z" fill="url(#leafGrad)" />
+    <path d="M 245 80 Q 285 50 305 75 Q 285 95 245 90 Z" fill="url(#leafGrad)" />
+    <path d="M 280 160 Q 325 165 330 195 Q 300 195 275 175 Z" fill="url(#leafGrad)" />
+
+    <!-- Decorative Herbal Swirl / Tendril -->
+    <path d="M 285 105 Q 315 100 325 80 Q 330 65 315 60 Q 305 55 310 70" 
+          fill="none" stroke="url(#leafGrad)" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Base Pot / Foundation Plate -->
+    <path d="M 130 350 L 180 350 Q 155 365 130 350 Z" fill="url(#stemGrad)" />
+  </g>
+</svg>
