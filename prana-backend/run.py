@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base, SessionLocal
-from app.routers import auth, trials, contracts, pharmacovigilance, cdisc_fhir, audit, health
+from app.routers import auth, trials, contracts, pharmacovigilance, cdisc_fhir, audit, health, chat
 from app.utils.synthetic_data import seed_synthetic_data
 
 # Create database tables
@@ -36,7 +36,8 @@ app.include_router(contracts.router)
 app.include_router(pharmacovigilance.router)
 app.include_router(cdisc_fhir.router)
 app.include_router(audit.router)  # <--- Added for JSON Audit Stream
-app.include_router(health.router)  # <--- Added for Daily Health Logs & Doctor Solutions
+app.include_router(health.router) 
+app.include_router(chat.router) # <--- Added for Daily Health Logs & Doctor Solutions
 
 @app.get("/")
 def root():

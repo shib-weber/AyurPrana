@@ -84,3 +84,11 @@ class AuditLog(Base):
     action = Column(String(100), nullable=False)
     details = Column(Text, nullable=True)
     ip_address = Column(String(45), default="127.0.0.1")
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"))
+    receiver_id = Column(Integer, ForeignKey("users.id"))
+    message = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)

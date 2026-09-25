@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models import Trial, User
+from app.models import Trial, User, PatientContract
 from app.schemas import TrialCreate
 from app.core.security import require_role, get_current_user
 from app.core.audit import log_audit_action
@@ -13,9 +13,15 @@ router = APIRouter(prefix="/trials", tags=["Clinical Trial Portfolio & KPIs"])
 def get_trials(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     query = db.query(Trial)
     
-    # Strict isolation: Researchers see only their own registered trials
+    # Role-based scoping
     if current_user.role == "researcher":
         query = query.filter(Trial.researcher_id == current_user.id)
+    elif current_user.role == "patient":
+        # Query PatientContracts directly using the database session
+        patient_contracts = db.query(PatientContract).filter(PatientContract.patient_id == current_user.id).all()
+        contracted_trial_ids = [c.trial_id for c in patient_contracts]
+        query = query.filter(Trial.id.in_(contracted_trial_ids))
+    # Doctors & Govt officials see all trials
         
     trials = query.all()
     return [
@@ -35,19 +41,24 @@ def get_trials(db: Session = Depends(get_db), current_user: User = Depends(get_c
         for t in trials
     ]
 
-@router.post("/", response_model=dict)
-def create_trial(
-    trial: TrialCreate, 
-    db: Session = Depends(get_db), 
-    current_user: User = Depends(require_role(["researcher", "admin"]))
+@router.patch("/{trial_id}/status", response_model=dict)
+def update_trial_status(
+    trial_id: int,
+    status_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["gov_official", "admin"]))
 ):
-    trial_data = trial.dict()
-    trial_data["researcher_id"] = current_user.id  # Automatically tag trial with logged-in researcher ID
+    """Allows government regulators to Pause, Terminate, or Complete a trial."""
+    trial = db.query(Trial).filter(Trial.id == trial_id).first()
+    if not trial:
+        raise HTTPException(status_code=404, detail="Trial not found")
     
-    new_trial = Trial(**trial_data)
-    db.add(new_trial)
+    new_status = status_data.get("status")
+    if new_status not in ["Active", "Paused", "Terminated", "Completed"]:
+        raise HTTPException(status_code=400, detail="Invalid status value")
+        
+    trial.status = new_status
     db.commit()
-    db.refresh(new_trial)
     
-    log_audit_action(db, current_user.id, "TRIAL_CREATED", f"Created trial CTRI: {new_trial.ctri_number}")
-    return {"message": "Trial registered successfully", "trial_id": new_trial.id, "ctri_number": new_trial.ctri_number}
+    log_audit_action(db, current_user.id, "UPDATE_TRIAL_STATUS", f"Changed trial {trial.ctri_number} status to {new_status}")
+    return {"status": "success", "message": f"Trial status updated to {new_status}"}

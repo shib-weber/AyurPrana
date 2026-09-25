@@ -178,3 +178,28 @@ export async function apiGetPatientDetails(token, patientId) {
   if (!res.ok) throw new Error("Failed to fetch patient details");
   return res.json();
 }
+export async function apiGetDoctorDetails(token, doctorId) {
+  const res = await fetch(`${API_BASE_URL}/auth/doctor/${doctorId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error("Failed to fetch doctor details");
+  return res.json();
+}
+
+export async function apiGetMessages(token, userId) {
+  const res = await fetch(`${API_BASE_URL}/chat/${userId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error("Failed to fetch messages");
+  return res.json();
+}
+
+export async function apiSendMessage(token, receiverId, message) {
+  const res = await fetch(`${API_BASE_URL}/chat/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ receiver_id: receiverId, message })
+  });
+  if (!res.ok) throw new Error("Failed to send message");
+  return res.json();
+}

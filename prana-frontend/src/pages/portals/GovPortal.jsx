@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../../components/Card';
-import { ShieldCheck, AlertCircle, CheckCircle, Send, Code, Users, ArrowRight } from 'lucide-react';
+import { ShieldCheck, AlertCircle, CheckCircle, Send, Code, Users, ArrowRight, Sparkles, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiGetTrials, apiGetAuditLogs, apiGetContracts, apiGetPatients } from '../../services/api';
+import { apiGetTrials, apiGetAuditLogs, apiGetContracts, apiGetPatients, apiGetProfile } from '../../services/api';
 
 export default function GovPortal() {
   const [trials, setTrials] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [patients, setPatients] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [currentOfficial, setCurrentOfficial] = useState(null);
   const [submitted, setSubmitted] = useState({});
   const token = localStorage.getItem('prana_token');
   const navigate = useNavigate();
 
   async function loadData() {
     try {
+      const profile = await apiGetProfile(token);
+      setCurrentOfficial(profile);
+
       setTrials(await apiGetTrials(token));
       setContracts(await apiGetContracts(token));
       setPatients(await apiGetPatients(token));
@@ -31,8 +35,30 @@ export default function GovPortal() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <h1 className="text-3xl font-bold text-ayurGreen-900 dark:text-white">Government Official & NPvCC Regulator Portal</h1>
       
+      {/* Personalized Greeting Header */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center space-x-4">
+          <div className="p-3 bg-ayurGreen-100 dark:bg-gray-700 text-ayurGreen-600 rounded-2xl">
+            <Building2 className="h-8 w-8" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-ayurGreen-900 dark:text-white">
+                Welcome back, {currentOfficial?.full_name || 'Regulator'}!
+              </h1>
+              <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" />
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Official Regulator ID: <span className="font-mono font-bold">#{currentOfficial?.id}</span> • Ministry of Ayush & NPvCC Coordination Directorate
+            </p>
+          </div>
+        </div>
+        <div className="bg-ayurGreen-50 dark:bg-gray-700 px-4 py-2 rounded-xl text-xs font-semibold text-ayurGreen-800 dark:text-ayurGreen-300 border border-ayurGreen-200 dark:border-gray-600">
+          NPvCC National Oversight Active
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card title="NPvCC Surveillance" value="Active" icon={ShieldCheck} subtitle="National monitoring" />
         <Card title="Total Registered Patients" value={patients.length} icon={Users} subtitle="System-wide participants" />

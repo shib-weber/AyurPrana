@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../../components/Card';
-import { ShieldCheck, FileText, CheckCircle2, AlertTriangle, User, Activity, ArrowRight } from 'lucide-react';
+import { ShieldCheck, FileText, CheckCircle2, AlertTriangle, User, Activity, ArrowRight, Sparkles, Stethoscope } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiGetProfile, apiGetContracts, apiReportAE, apiLogDailyHealth, apiGetAdverseEvents } from '../../services/api';
+import { apiGetProfile, apiGetContracts, apiReportAE, apiLogDailyHealth, apiGetAdverseEvents, apiGetTrials } from '../../services/api';
 
 export default function PatientPortal() {
   const [profile, setProfile] = useState(null);
   const [contracts, setContracts] = useState([]);
+  const [trials, setTrials] = useState([]);
   const [events, setEvents] = useState([]);
   
   const [healthLog, setHealthLog] = useState({ trial_id: '', vitals: '', notes: '' });
@@ -17,19 +18,35 @@ export default function PatientPortal() {
 
   async function loadData() {
     try {
-      setProfile(await apiGetProfile(token));
-      setContracts(await apiGetContracts(token));
+      const userProfile = await apiGetProfile(token);
+      setProfile(userProfile);
+
+      const allContracts = await apiGetContracts(token);
+      const myContracts = allContracts.filter(c => c.patient_id === userProfile.id);
+      setContracts(myContracts);
+
+      const allTrials = await apiGetTrials(token);
+      setTrials(allTrials);
+
       setEvents(await apiGetAdverseEvents(token));
     } catch (err) { console.error(err); }
   }
 
   useEffect(() => { loadData(); }, [token]);
 
-  const contractedTrials = contracts.map(c => ({
-    id: c.trial_id,
-    title: c.trial_title || `Trial ID #${c.trial_id}`,
-    contract_ref: c.contract_ref
-  }));
+  // Map contracted trials to include their full titles, ctri numbers, and assigned doctor ID
+  const contractedTrials = contracts.map(c => {
+    const trialObj = trials.find(t => t.id === c.trial_id);
+    return {
+      id: c.trial_id,
+      contract_id: c.id,
+      doctor_id: c.doctor_id,
+      title: trialObj ? trialObj.title : `Clinical Trial #${c.trial_id}`,
+      ctri_number: trialObj ? trialObj.ctri_number : 'CRDA/AIIA/2026',
+      contract_ref: c.contract_ref,
+      e_signature: c.e_signature
+    };
+  });
 
   const handleHealthLogSubmit = async (e) => {
     e.preventDefault();
@@ -47,6 +64,9 @@ export default function PatientPortal() {
 
   const handleReportIssue = async (e) => {
     e.preventDefault();
+    if (!aeForm.trial_id || !aeForm.term) {
+      return alert('Please select a trial and describe your symptom.');
+    }
     try {
       await apiReportAE(token, {
         patient_id: profile.id,
@@ -57,6 +77,7 @@ export default function PatientPortal() {
       });
       setMsg('Safety alarm raised successfully to your doctor & NPvCC!');
       setAeForm({ trial_id: '', term: '', severity: 'Mild' });
+      loadData();
     } catch (err) { alert(err.message); }
   };
 
@@ -64,11 +85,27 @@ export default function PatientPortal() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <div className="flex items-center space-x-3">
-        <User className="h-8 w-8 text-ayurGreen-600" />
-        <div>
-          <h1 className="text-3xl font-bold text-ayurGreen-900 dark:text-white">Welcome, {profile?.full_name}</h1>
-          <p className="text-sm text-gray-500">Patient ID: #{profile?.id}</p>
+      
+      {/* Personalized Greeting Header */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center space-x-4">
+          <div className="p-3 bg-ayurGreen-100 dark:bg-gray-700 text-ayurGreen-600 rounded-2xl">
+            <User className="h-8 w-8" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-ayurGreen-900 dark:text-white">
+                Welcome back, {profile?.full_name || 'Participant'}!
+              </h1>
+              <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" />
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Patient ID: <span className="font-mono font-bold">#{profile?.id}</span> • Active Participant in AIIA Clinical Trials
+            </p>
+          </div>
+        </div>
+        <div className="bg-ayurGreen-50 dark:bg-gray-700 px-4 py-2 rounded-xl text-xs font-semibold text-ayurGreen-800 dark:text-ayurGreen-300 border border-ayurGreen-200 dark:border-gray-600">
+          DPDP Act 2023 Secure Data Vault
         </div>
       </div>
 
@@ -80,19 +117,31 @@ export default function PatientPortal() {
         <Card title="Doctor Solutions" value={myEvents.filter(e=>e.doctor_solution).length} icon={ShieldCheck} subtitle="Prescriptions received" />
       </div>
 
-      {/* Patient Active Contracts List (Clickable to Trial Detail Page) */}
+      {/* Patient Active Contracts List with Full Trial Names & Doctor DM Buttons */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
-        <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Your Enrolled Clinical Trials (Click for Full Report)</h3>
+        <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Your Enrolled Clinical Trials & Assigned Doctors</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {contracts.length === 0 ? <p className="text-xs text-gray-500">No active contracts found.</p> : contracts.map(c => (
-            <div key={c.id} onClick={() => navigate(`/trials/${c.trial_id}`)} className="p-4 bg-ayurGreen-50 dark:bg-gray-700 rounded-xl cursor-pointer hover:shadow-md transition space-y-2 text-xs border border-ayurGreen-100 flex flex-col justify-between">
+          {contractedTrials.length === 0 ? <p className="text-xs text-gray-500">No active contracts found.</p> : contractedTrials.map(t => (
+            <div key={t.contract_id} className="p-4 bg-ayurGreen-50 dark:bg-gray-700 rounded-xl space-y-3 text-xs border border-ayurGreen-100 flex flex-col justify-between">
               <div>
-                <p className="font-bold text-ayurGreen-900 dark:text-white text-sm">Contract Ref: {c.contract_ref}</p>
-                <p className="text-gray-500">Trial ID: #{c.trial_id}</p>
+                <span className="text-[10px] font-mono font-bold bg-ayurGreen-200 text-ayurGreen-900 px-2 py-0.5 rounded">{t.ctri_number}</span>
+                <h4 className="font-bold text-sm text-gray-900 dark:text-white mt-1">{t.title}</h4>
+                <p className="text-gray-500 mt-1">Contract Ref: {t.contract_ref}</p>
+                <p className="font-serif italic text-ayurGreen-700 dark:text-ayurGreen-300 mt-1">Consent: "{t.e_signature}"</p>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-ayurGreen-200 dark:border-gray-600">
-                <span className="font-serif italic text-ayurGreen-700 dark:text-ayurGreen-300">Consent: "{c.e_signature}"</span>
-                <span className="flex items-center space-x-1 text-ayurGreen-600 font-bold"><span>View Trial Report</span><ArrowRight className="h-3 w-3"/></span>
+              <div className="flex flex-wrap justify-between items-center pt-2 border-t border-ayurGreen-200 dark:border-gray-600 gap-2">
+                <button 
+                  onClick={() => navigate(`/doctor/${t.doctor_id}`)} 
+                  className="bg-ayurGreen-600 text-white px-3 py-1.5 rounded-lg font-medium flex items-center space-x-1 hover:bg-ayurGreen-700 transition"
+                >
+                  <Stethoscope className="h-3 w-3"/><span>View Doctor Profile & DM</span>
+                </button>
+                <span 
+                  onClick={() => navigate(`/trials/${t.id}`)} 
+                  className="text-ayurGreen-700 dark:text-ayurGreen-300 font-bold cursor-pointer hover:underline flex items-center space-x-1"
+                >
+                  <span>Trial Report</span><ArrowRight className="h-3 w-3"/>
+                </span>
               </div>
             </div>
           ))}
@@ -100,6 +149,7 @@ export default function PatientPortal() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Upload Daily Health & Vitals */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700">
           <h3 className="text-xl font-bold mb-4 text-ayurGreen-800 dark:text-white flex items-center space-x-2">
             <Activity className="h-5 w-5 text-ayurGreen-600" />
@@ -126,6 +176,7 @@ export default function PatientPortal() {
         </div>
 
         <div className="space-y-6">
+          {/* Raise Health Issue */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700">
             <h3 className="text-xl font-bold mb-4 text-ayurGreen-800 dark:text-white flex items-center space-x-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -143,15 +194,24 @@ export default function PatientPortal() {
                 <label className="block text-sm font-medium">Symptom / MedDRA Term</label>
                 <input type="text" value={aeForm.term} onChange={e=>setAeForm({...aeForm, term: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600" placeholder="e.g. Mild headache" required />
               </div>
+              <div>
+                <label className="block text-sm font-medium">Severity</label>
+                <select value={aeForm.severity} onChange={e=>setAeForm({...aeForm, severity: e.target.value})} className="w-full mt-1 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600">
+                  <option value="Mild">Mild</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Severe">Severe</option>
+                </select>
+              </div>
               <button type="submit" className="w-full bg-ayurGreen-600 text-white p-3 rounded-xl font-medium">Raise Alarm</button>
             </form>
           </div>
 
+          {/* Prescriptions & Doctor Solutions */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-3">
             <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Prescriptions & Doctor Solutions</h3>
             {myEvents.length === 0 ? <p className="text-xs text-gray-500">No active health issues or prescriptions.</p> : myEvents.map(ev => (
               <div key={ev.id} className="p-3 bg-ayurGreen-50 dark:bg-gray-700 rounded-xl space-y-1 text-xs">
-                <p className="font-bold text-ayurGreen-900 dark:text-white">Issue: {ev.meddra_preferred_term}</p>
+                <p className="font-bold text-ayurGreen-900 dark:text-white">Issue: {ev.meddra_preferred_term} ({ev.severity})</p>
                 <p className="text-green-700 dark:text-green-300 font-semibold">Doctor Solution: {ev.doctor_solution || "Pending doctor review..."}</p>
               </div>
             ))}

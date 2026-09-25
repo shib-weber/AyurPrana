@@ -1,38 +1,71 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Activity, AlertTriangle, ShieldCheck, ArrowLeft, LineChart, FileText } from 'lucide-react';
-import { apiGetPatientDetails, apiGetPatientHealthLogs, apiGetAdverseEvents } from '../services/api';
+import { User, Activity, AlertTriangle, ShieldCheck, ArrowLeft, LineChart, FileText, MessageSquare, Send } from 'lucide-react';
+import { apiGetPatientDetails, apiGetPatientHealthLogs, apiGetAdverseEvents, apiGetProfile, apiGetMessages, apiSendMessage } from '../services/api';
 
 export default function PatientProfilePage() {
   const { patientId } = useParams();
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
+  const [currentDoctor, setCurrentDoctor] = useState(null);
   const [logs, setLogs] = useState([]);
   const [events, setEvents] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem('prana_token');
 
-  useEffect(() => {
-    async function loadPatientData() {
+  async function loadData() {
+    try {
+      const doctorProfile = await apiGetProfile(token);
+      setCurrentDoctor(doctorProfile);
+
+      const patientData = await apiGetPatientDetails(token, patientId);
+      setPatient(patientData);
+
+      const healthLogs = await apiGetPatientHealthLogs(token, patientId);
+      setLogs(healthLogs);
+
+      const allEvents = await apiGetAdverseEvents(token);
+      const patientEvents = allEvents.filter(e => e.patient_id.toString() === patientId.toString());
+      setEvents(patientEvents);
+
+      // Fetch messages from backend database
       try {
-        const patientData = await apiGetPatientDetails(token, patientId);
-        setPatient(patientData);
-
-        const healthLogs = await apiGetPatientHealthLogs(token, patientId);
-        setLogs(healthLogs);
-
-        const allEvents = await apiGetAdverseEvents(token);
-        const patientEvents = allEvents.filter(e => e.patient_id.toString() === patientId.toString());
-        setEvents(patientEvents);
-
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
+        const chatMsgs = await apiGetMessages(token, patientId);
+        setMessages(chatMsgs.map(m => ({
+          sender: m.sender_id === doctorProfile?.id ? 'doctor' : 'patient',
+          text: m.message,
+          timestamp: m.timestamp
+        })));
+      } catch (e) {
+        console.error("Chat sync fallback:", e);
       }
+
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
     }
-    loadPatientData();
-  }, [patientId, token]);
+  }
+
+  useEffect(() => { loadData(); }, [patientId, token]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !currentDoctor) return;
+
+    try {
+      await apiSendMessage(token, parseInt(patientId), newMessage);
+      setMessages([
+        ...messages,
+        { sender: 'doctor', text: newMessage, timestamp: new Date().toLocaleTimeString() }
+      ]);
+      setNewMessage('');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
   if (loading) return <div className="p-12 text-center text-gray-500">Loading patient clinical profile...</div>;
   if (!patient) return <div className="p-12 text-center text-red-500">Patient not found for ID: #{patientId}</div>;
@@ -56,7 +89,7 @@ export default function PatientProfilePage() {
         </div>
       </div>
 
-      {/* Health Recovery & Vitals Surge LINE GRAPH */}
+      {/* Health Recovery & Vitals Surge LINE GRAPH (Fixed SVG Coordinates) */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
         <div className="flex items-center space-x-2 text-ayurGreen-800 dark:text-white font-bold">
           <LineChart className="h-5 w-5 text-ayurGreen-600"/>
@@ -67,16 +100,15 @@ export default function PatientProfilePage() {
             <p className="text-xs text-gray-500 text-center py-6">No daily health logs submitted yet.</p>
           ) : (
             <div className="h-48 relative flex items-end justify-between px-4 pt-8 border-b border-l border-ayurGreen-200 dark:border-gray-600">
-              {/* SVG Line Graph Connectors */}
-              <svg className="absolute inset-0 w-full h-full p-4 pointer-events-none" preserveAspectRatio="none">
+              <svg className="absolute inset-0 w-full h-full p-4 pointer-events-none" viewBox="0 0 400 160" preserveAspectRatio="none">
                 <polyline
                   fill="none"
                   stroke="#16a34a"
                   strokeWidth="3"
                   points={logs.map((l, idx) => {
-                    const x = (idx / (logs.length - 1 || 1)) * 90 + 5; // percentage X
-                    const y = 100 - ((idx + 1) * 20); // mock height percentage Y
-                    return `${x}%,${y}%`;
+                    const x = (idx / (logs.length - 1 || 1)) * 360 + 20;
+                    const y = 140 - ((idx + 1) * 30);
+                    return `${x},${Math.max(20, y)}`;
                   }).join(' ')}
                 />
               </svg>
@@ -138,6 +170,48 @@ export default function PatientProfilePage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Direct Messaging Consultation Chat Area */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 flex flex-col justify-between h-[400px]">
+        <div className="flex items-center space-x-2 font-bold text-ayurGreen-800 dark:text-white border-b pb-3 dark:border-gray-700">
+          <MessageSquare className="h-5 w-5 text-ayurGreen-600"/>
+          <h3>Direct Consultation Chat with {patient.full_name}</h3>
+        </div>
+
+        {/* Chat Messages Stream */}
+        <div className="flex-grow overflow-y-auto space-y-3 py-4 pr-2">
+          {messages.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-6">No messages yet. Start the conversation below.</p>
+          ) : (
+            messages.map((m, idx) => (
+              <div key={idx} className={`flex flex-col ${m.sender === 'doctor' ? 'items-end' : 'items-start'}`}>
+                <div className={`p-3 rounded-xl max-w-[80%] text-xs ${
+                  m.sender === 'doctor' 
+                    ? 'bg-ayurGreen-600 text-white rounded-br-none' 
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-none'
+                }`}>
+                  <p>{m.text}</p>
+                </div>
+                <span className="text-[9px] text-gray-400 mt-1">{m.timestamp}</span>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Chat Input */}
+        <form onSubmit={handleSendMessage} className="flex space-x-2 pt-3 border-t dark:border-gray-700">
+          <input 
+            type="text" 
+            value={newMessage} 
+            onChange={e=>setNewMessage(e.target.value)} 
+            placeholder={`Message ${patient.full_name}...`} 
+            className="flex-1 p-2.5 text-xs border rounded-xl dark:bg-gray-700 dark:border-gray-600"
+          />
+          <button type="submit" className="bg-ayurGreen-600 text-white px-4 py-2.5 rounded-xl text-xs font-medium flex items-center space-x-1 hover:bg-ayurGreen-700">
+            <Send className="h-3 w-3"/><span>Send</span>
+          </button>
+        </form>
       </div>
     </div>
   );

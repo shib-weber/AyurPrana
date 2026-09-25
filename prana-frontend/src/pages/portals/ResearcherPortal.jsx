@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../../components/Card';
-import { Database, Activity, PlusCircle, FileText, ShieldAlert, BarChart3, Users, Code, ArrowRight, Upload } from 'lucide-react';
+import { Database, Activity, PlusCircle, FileText, ShieldAlert, BarChart3, Users, Code, ArrowRight, Upload, Sparkles, Microscope } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiGetTrials, apiCreateTrial, apiGetAdverseEvents, apiGetAuditLogs } from '../../services/api';
+import { apiGetTrials, apiCreateTrial, apiGetAdverseEvents, apiGetAuditLogs, apiGetProfile } from '../../services/api';
 
 export default function ResearcherPortal() {
   const [trials, setTrials] = useState([]);
   const [events, setEvents] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [currentResearcher, setCurrentResearcher] = useState(null);
   const [newTrial, setNewTrial] = useState({ 
     ctri_number: '', 
     title: '', 
@@ -27,6 +28,9 @@ export default function ResearcherPortal() {
 
   async function loadData() {
     try {
+      const profile = await apiGetProfile(token);
+      setCurrentResearcher(profile);
+
       const fetchedTrials = await apiGetTrials(token);
       setTrials(fetchedTrials);
       
@@ -70,8 +74,30 @@ export default function ResearcherPortal() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <h1 className="text-3xl font-bold text-ayurGreen-900 dark:text-white">Researcher & Analytics Portal</h1>
       
+      {/* Personalized Greeting Header */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center space-x-4">
+          <div className="p-3 bg-ayurGreen-100 dark:bg-gray-700 text-ayurGreen-600 rounded-2xl">
+            <Microscope className="h-8 w-8" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-ayurGreen-900 dark:text-white">
+                Welcome back, {currentResearcher?.full_name || 'Researcher'}!
+              </h1>
+              <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" />
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Principal Investigator ID: <span className="font-mono font-bold">#{currentResearcher?.id}</span> • AIIA Clinical Research & Pharmacognosy Division
+            </p>
+          </div>
+        </div>
+        <div className="bg-ayurGreen-50 dark:bg-gray-700 px-4 py-2 rounded-xl text-xs font-semibold text-ayurGreen-800 dark:text-ayurGreen-300 border border-ayurGreen-200 dark:border-gray-600">
+          CDISC SDTM / ADaM Compliant
+        </div>
+      </div>
+
       {success && <div className="p-4 bg-green-100 text-green-800 rounded-xl">{success}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

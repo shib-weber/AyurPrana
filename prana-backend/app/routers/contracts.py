@@ -50,6 +50,9 @@ def create_patient_contract(
     if not trial:
         raise HTTPException(status_code=404, detail="Trial not found")
     
+    if trial.status in ["Paused", "Terminated"]:
+        raise HTTPException(status_code=400, detail=f"Cannot enroll patients. Trial is currently {trial.status}.")
+    
     unique_suffix = uuid.uuid4().hex[:6].upper()
     contract_ref = f"PRANA-CNT-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{contract.patient_id}-{contract.trial_id}-{unique_suffix}"
     

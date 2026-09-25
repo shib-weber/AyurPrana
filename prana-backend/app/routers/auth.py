@@ -58,3 +58,15 @@ def get_patient_by_id(patient_id: int, db: Session = Depends(get_db), current_us
         "email": patient.email,
         "username": patient.username
     }
+
+@router.get("/doctor/{doctor_id}")
+def get_doctor_by_id(doctor_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    doctor = db.query(User).filter(User.id == doctor_id, User.role == "doctor").first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    return {
+        "id": doctor.id,
+        "full_name": doctor.full_name,
+        "email": doctor.email,
+        "username": doctor.username
+    }

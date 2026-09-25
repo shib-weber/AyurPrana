@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../../components/Card';
-import { Users, FilePlus, AlertTriangle, CheckCircle, Search, Activity, LineChart, ArrowRight } from 'lucide-react';
+import { Users, FilePlus, AlertTriangle, CheckCircle, Search, Activity, LineChart, ArrowRight, Sparkles, Stethoscope } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiGetTrials, apiGetPatients, apiGetContracts, apiCreateContract, apiGetAdverseEvents, apiProvideSolution, apiGetPatientHealthLogs, apiGetProfile } from '../../services/api';
 
@@ -92,8 +92,30 @@ export default function DoctorPortal() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <h1 className="text-3xl font-bold text-ayurGreen-900 dark:text-white">Doctor & Investigator Portal</h1>
       
+      {/* Personalized Greeting Header */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center space-x-4">
+          <div className="p-3 bg-ayurGreen-100 dark:bg-gray-700 text-ayurGreen-600 rounded-2xl">
+            <Stethoscope className="h-8 w-8" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-ayurGreen-900 dark:text-white">
+                Welcome back, {currentDoctor?.full_name || 'Doctor'}!
+              </h1>
+              <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" />
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Principal Investigator & Physician ID: <span className="font-mono font-bold">#{currentDoctor?.id}</span> • AIIA Clinical Research Division
+            </p>
+          </div>
+        </div>
+        <div className="bg-ayurGreen-50 dark:bg-gray-700 px-4 py-2 rounded-xl text-xs font-semibold text-ayurGreen-800 dark:text-ayurGreen-300 border border-ayurGreen-200 dark:border-gray-600">
+          ALCOA+ Verified Practitioner
+        </div>
+      </div>
+
       {success && <div className="p-4 bg-green-100 text-green-800 rounded-xl flex items-center space-x-2"><CheckCircle/><span>{success}</span></div>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -102,24 +124,32 @@ export default function DoctorPortal() {
         <Card title="Compliance Score" value="100%" icon={FilePlus} subtitle="ALCOA+ Verified" />
       </div>
 
-      {/* Trials Directory List for Clickable Detailed Report */}
+            {/* Active Patient Safety Alarms (Disappears Upon Response) */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
-        <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Active Clinical Trials (Click for Detailed Analytics Report)</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {trials.map(t => (
-            <div key={t.id} onClick={() => navigate(`/trials/${t.id}`)} className="p-4 bg-ayurGreen-50 dark:bg-gray-700 rounded-xl cursor-pointer hover:shadow-md transition space-y-2 border border-ayurGreen-100 flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-mono font-bold bg-ayurGreen-200 text-ayurGreen-900 px-2 py-0.5 rounded">{t.ctri_number}</span>
-                <h4 className="font-bold text-sm text-gray-900 dark:text-white mt-1">{t.title}</h4>
+        <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Pending Patient Safety Alarms (Disappears on Response)</h3>
+        <div className="space-y-3">
+          {myActiveAlarms.length === 0 ? (
+            <p className="text-xs text-gray-500 py-4 text-center">No pending safety alarms from your contracted patients.</p>
+          ) : (
+            myActiveAlarms.map(ev => (
+              <div key={ev.id} className="p-4 bg-red-50 dark:bg-gray-700 rounded-xl border border-red-200 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-red-700 dark:text-red-400">{ev.meddra_preferred_term}</span>
+                  <span className="text-xs bg-red-200 text-red-900 px-2 py-0.5 rounded font-semibold">{ev.severity}</span>
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-300">Patient ID: #{ev.patient_id} | Outcome: {ev.outcome}</p>
+                
+                <div className="flex space-x-2">
+                  <input type="text" placeholder="Provide medical solution/prescription advice..." value={solutionInputs[ev.id] || ''} onChange={e=>setSolutionInputs({...solutionInputs, [ev.id]: e.target.value})} className="flex-1 p-2 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-600"/>
+                  <button onClick={() => handleSendSolution(ev.id)} className="bg-ayurGreen-600 text-white px-4 py-2 rounded-lg text-xs font-medium">Send Solution & Resolve</button>
+                </div>
               </div>
-              <div className="flex justify-between items-center text-xs pt-2 border-t border-ayurGreen-200 dark:border-gray-600">
-                <span className="text-ayurGreen-700 dark:text-ayurGreen-300 font-semibold">{t.status}</span>
-                <span className="flex items-center space-x-1 text-ayurGreen-600 dark:text-ayurGreen-400 font-bold"><span>View Report</span><ArrowRight className="h-3 w-3"/></span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
+
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Smart Contract Form */}
@@ -180,31 +210,6 @@ export default function DoctorPortal() {
         </div>
       </div>
 
-      {/* Active Patient Safety Alarms (Disappears Upon Response) */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
-        <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Pending Patient Safety Alarms (Disappears on Response)</h3>
-        <div className="space-y-3">
-          {myActiveAlarms.length === 0 ? (
-            <p className="text-xs text-gray-500 py-4 text-center">No pending safety alarms from your contracted patients.</p>
-          ) : (
-            myActiveAlarms.map(ev => (
-              <div key={ev.id} className="p-4 bg-red-50 dark:bg-gray-700 rounded-xl border border-red-200 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-red-700 dark:text-red-400">{ev.meddra_preferred_term}</span>
-                  <span className="text-xs bg-red-200 text-red-900 px-2 py-0.5 rounded font-semibold">{ev.severity}</span>
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-300">Patient ID: #{ev.patient_id} | Outcome: {ev.outcome}</p>
-                
-                <div className="flex space-x-2">
-                  <input type="text" placeholder="Provide medical solution/prescription advice..." value={solutionInputs[ev.id] || ''} onChange={e=>setSolutionInputs({...solutionInputs, [ev.id]: e.target.value})} className="flex-1 p-2 text-xs border rounded-lg dark:bg-gray-800 dark:border-gray-600"/>
-                  <button onClick={() => handleSendSolution(ev.id)} className="bg-ayurGreen-600 text-white px-4 py-2 rounded-lg text-xs font-medium">Send Solution & Resolve</button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
       {/* Dedicated Patient Clinical Monitoring Modal */}
       {activePatientModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -249,6 +254,25 @@ export default function DoctorPortal() {
           </div>
         </div>
       )}
+            {/* Trials Directory List for Clickable Detailed Report */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-4">
+        <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">Active Clinical Trials (Click for Detailed Analytics Report)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {trials.map(t => (
+            <div key={t.id} onClick={() => navigate(`/trials/${t.id}`)} className="p-4 bg-ayurGreen-50 dark:bg-gray-700 rounded-xl cursor-pointer hover:shadow-md transition space-y-2 border border-ayurGreen-100 flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-mono font-bold bg-ayurGreen-200 text-ayurGreen-900 px-2 py-0.5 rounded">{t.ctri_number}</span>
+                <h4 className="font-bold text-sm text-gray-900 dark:text-white mt-1">{t.title}</h4>
+              </div>
+              <div className="flex justify-between items-center text-xs pt-2 border-t border-ayurGreen-200 dark:border-gray-600">
+                <span className="text-ayurGreen-700 dark:text-ayurGreen-300 font-semibold">{t.status}</span>
+                <span className="flex items-center space-x-1 text-ayurGreen-600 dark:text-ayurGreen-400 font-bold"><span>View Report</span><ArrowRight className="h-3 w-3"/></span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
+    
   );
 }

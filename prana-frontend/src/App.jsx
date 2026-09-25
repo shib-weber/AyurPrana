@@ -11,7 +11,8 @@ import PatientPortal from './pages/portals/PatientPortal';
 import ResearcherPortal from './pages/portals/ResearcherPortal';
 import GovPortal from './pages/portals/GovPortal';
 import TrialDetailPage from './pages/TrialDetailPage';
-import PatientProfilePage from './pages/PatientProfilePage'; // <--- Added import for individual patient page
+import PatientProfilePage from './pages/PatientProfilePage';
+import DoctorProfilePage from './pages/DoctorProfilePage'; 
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -70,6 +71,11 @@ export default function App() {
                   <PatientProfilePage />
                 </ProtectedRoute>
               } />
+              <Route path="/doctor/:doctorId" element={
+  <ProtectedRoute>
+    <DoctorProfilePage />
+  </ProtectedRoute>
+} />
 
               {/* Catch-all fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />
