@@ -14,6 +14,7 @@ import InvestigatorReviewPortal from './pages/portals/InvestigatorReviewPortal';
 import TrialDetailPage from './pages/TrialDetailPage';
 import PatientProfilePage from './pages/PatientProfilePage';
 import DoctorProfilePage from './pages/DoctorProfilePage'; 
+import  AyurPrana  from './pages/AyurPrana';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/ayurprana" element={<AyurPrana />} />
               
               {/* Protected Dynamic Trial Detail Route */}
               <Route path="/trials/:trialId" element={

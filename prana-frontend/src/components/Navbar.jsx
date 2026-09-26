@@ -76,6 +76,9 @@ export default function Navbar() {
               <Link to="/register" className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow transition">
                 Register
               </Link>
+                            <Link to="/ayurprana" className="text-gray-600 dark:text-gray-300 hover:text-emerald-600 font-medium text-sm transition">
+                About
+              </Link>
             </>
           )}
           
@@ -154,6 +157,13 @@ export default function Navbar() {
                 className="text-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow transition"
               >
                 Register
+              </Link>
+              <Link 
+                to="/ayurprana" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-center px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 transition"
+              >
+                About
               </Link>
             </div>
           )}

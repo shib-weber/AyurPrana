@@ -30,7 +30,7 @@ export default function LandingPage() {
             
 
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight drop-shadow-lg leading-tight">
-              AyurPran: GCP-Compliant Clinical Research & Safety Intelligence
+              AyurPrana: GCP-Compliant Clinical Research & Safety Intelligence
             </h1>
 
             <p className="text-sm sm:text-base lg:text-lg text-gray-200 leading-relaxed drop-shadow-md max-w-2xl">

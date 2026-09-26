@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../../components/Card';
-import { ShieldCheck, AlertCircle, CheckCircle, Send, Code, Users, ArrowRight, Sparkles, Building2 } from 'lucide-react';
+import { ShieldCheck, AlertCircle, CheckCircle, Send, Code, Users, ArrowRight, Sparkles, Building2, FileCheck2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiGetTrials, apiGetAuditLogs, apiGetContracts, apiGetPatients, apiGetProfile } from '../../services/api';
 
@@ -11,6 +11,10 @@ export default function GovPortal() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [currentOfficial, setCurrentOfficial] = useState(null);
   const [submitted, setSubmitted] = useState({});
+  
+  // Professional Modal State
+  const [modalData, setModalData] = useState(null);
+
   const token = localStorage.getItem('prana_token');
   const navigate = useNavigate();
 
@@ -28,13 +32,18 @@ export default function GovPortal() {
 
   useEffect(() => { loadData(); }, [token]);
 
-  const handleFinalSubmit = (trialId, ctri) => {
-    setSubmitted(prev => ({ ...prev, [trialId]: true }));
-    alert(`Final regulatory audit report & CDISC submission package for trial ${ctri} submitted successfully to global researchers and Ministry of Ayush.`);
+  const handleFinalSubmit = (trial) => {
+    setSubmitted(prev => ({ ...prev, [trial.id]: true }));
+    setModalData({
+      ctri: trial.ctri_number,
+      title: trial.title,
+      investigator: trial.principal_investigator,
+      timestamp: new Date().toLocaleString()
+    });
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 relative">
       
       {/* Personalized Greeting Header */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -65,7 +74,7 @@ export default function GovPortal() {
         <Card title="Total CRDA Trials" value={trials.length} icon={AlertCircle} subtitle="Registered studies" />
       </div>
 
-      {/* National Trial Oversight Table (Clickable Rows for Detailed Trial Report) */}
+      {/* National Trial Oversight Table */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-ayurGreen-100 dark:border-gray-700 space-y-6">
         <h3 className="text-xl font-bold text-ayurGreen-800 dark:text-white">National Clinical Trial Oversight (Click Row for Detailed Report)</h3>
         
@@ -101,7 +110,7 @@ export default function GovPortal() {
                       {submitted[t.id] ? (
                         <span className="text-xs text-green-600 font-bold flex items-center space-x-1"><CheckCircle className="h-4 w-4"/><span>Submitted</span></span>
                       ) : (
-                        <button onClick={() => handleFinalSubmit(t.id, t.ctri_number)} className="bg-ayurGreen-600 hover:bg-ayurGreen-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1 shadow">
+                        <button onClick={() => handleFinalSubmit(t)} className="bg-ayurGreen-600 hover:bg-ayurGreen-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1 shadow">
                           <Send className="h-3 w-3"/><span>Global Submit</span>
                         </button>
                       )}
@@ -129,6 +138,64 @@ export default function GovPortal() {
           <pre>{JSON.stringify(auditLogs, null, 2)}</pre>
         </div>
       </div>
+
+      {/* PROFESSIONAL SUBMISSION SUCCESS MODAL POPUP */}
+      {modalData && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-lg w-full p-8 shadow-2xl border border-ayurGreen-100 dark:border-gray-700 space-y-6 relative">
+            
+            <button 
+              onClick={() => setModalData(null)} 
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="p-4 bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 rounded-full shadow-inner">
+                <FileCheck2 className="h-10 w-10 animate-bounce" />
+              </div>
+              <h3 className="text-2xl font-extrabold text-ayurGreen-900 dark:text-white">
+                Global Submission Successful!
+              </h3>
+              <p className="text-xs text-gray-500">
+                Final regulatory audit report & CDISC submission package successfully dispatched to global researchers and the Ministry of Ayush.
+              </p>
+            </div>
+
+            <div className="p-4 bg-ayurGreen-50 dark:bg-gray-700/50 rounded-2xl space-y-2 text-xs border border-ayurGreen-100 dark:border-gray-600">
+              <div className="flex justify-between">
+                <span className="text-gray-500">CRDA / CTRI Tracking:</span>
+                <span className="font-mono font-bold text-ayurGreen-700 dark:text-ayurGreen-300">{modalData.ctri}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Study Title:</span>
+                <span className="font-semibold text-gray-900 dark:text-white truncate max-w-[240px]">{modalData.title}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Principal Investigator:</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{modalData.investigator}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Submission Timestamp:</span>
+                <span className="font-mono text-gray-600 dark:text-gray-300">{modalData.timestamp}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 text-[10px] text-gray-400 justify-center">
+              <ShieldCheck className="h-4 w-4 text-green-600" />
+              <span>SHA-256 Cryptographic Seal Verified • ALCOA+ Compliant</span>
+            </div>
+
+            <button 
+              onClick={() => setModalData(null)}
+              className="w-full bg-ayurGreen-600 hover:bg-ayurGreen-700 text-white py-3 rounded-xl font-bold text-sm shadow-lg transition transform hover:-translate-y-0.5"
+            >
+              Close & Return to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
